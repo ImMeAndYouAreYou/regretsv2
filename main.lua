@@ -2,7 +2,7 @@
 --[ Rayfield Loader & UI Creation ]--
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
-    Name = "Anti-Cheat & Debug Suite",
+    Name = "keks Hitbox Expender",
     ConfigurationSaving = {
         Enabled = true,
         FileName = "AntiCheatDebug"
