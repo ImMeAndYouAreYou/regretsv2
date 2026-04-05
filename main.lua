@@ -40,7 +40,7 @@ HitboxTab:CreateToggle({
                         local part = v.Character:FindFirstChild(limb)
                         if part and originalProperties[part] then
                             part.Size = originalProperties[part].Size
-                            part.CanCollide = originalProperties[part].CanCollide
+                            part.CanCollide = false
                             part.Transparency = originalProperties[part].Transparency
                         end
                     end
@@ -246,7 +246,7 @@ local function startHitboxLoop()
                             if not originalProperties[part] then
                                 originalProperties[part] = {
                                     Size = part.Size,
-                                    CanCollide = part.CanCollide,
+                                    CanCollide = false,
                                     Transparency = part.Transparency
                                 }
                             end
