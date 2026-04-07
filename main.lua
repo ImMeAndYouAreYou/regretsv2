@@ -1,4 +1,3 @@
-
 --[ Rayfield Loader & UI Creation ]--
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window = Rayfield:CreateWindow({
@@ -23,7 +22,7 @@ local HitboxSize = Vector3.new(13,13,13)
 local HitboxTransparency = 0.5
 local targetLimbs = {"RightUpperLeg", "LeftUpperLeg", "HeadHB", "HumanoidRootPart"}
 
--- Store original part properties to restore later
+-- Store original properties for ALL parts (not just the limbs)
 local originalProperties = {} -- [part] = {Size, CanCollide, Transparency}
 
 HitboxTab:CreateToggle({
@@ -33,19 +32,15 @@ HitboxTab:CreateToggle({
     Callback = function(State)
         HitboxEnabled = State
         if not HitboxEnabled then
-            -- Restore all modified parts
-            for _, v in pairs(game.Players:GetPlayers()) do
-                if v.Character then
-                    for _, limb in pairs(targetLimbs) do
-                        local part = v.Character:FindFirstChild(limb)
-                        if part and originalProperties[part] then
-                            part.Size = originalProperties[part].Size
-                            part.CanCollide = false
-                            part.Transparency = originalProperties[part].Transparency
-                        end
-                    end
+            -- Restore ALL modified parts (size, cancollide, transparency)
+            for part, props in pairs(originalProperties) do
+                if part and part.Parent then
+                    part.Size = props.Size
+                    part.CanCollide = props.CanCollide
+                    part.Transparency = props.Transparency
                 end
             end
+            originalProperties = {} -- clear the table
         end
     end
 })
@@ -63,7 +58,7 @@ HitboxTab:CreateSlider({
     end
 })
 
--- Transparency Slider (fixed from dropdown)
+-- Transparency Slider
 HitboxTab:CreateSlider({
     Name = "Hitbox Transparency",
     Range = {0, 1},
@@ -237,22 +232,29 @@ local function startHitboxLoop()
     if hitboxLoop then hitboxLoop:Disconnect() end
     hitboxLoop = game:GetService("RunService").Heartbeat:Connect(function()
         if HitboxEnabled then
+            local localPlayer = game.Players.LocalPlayer
             for _, v in pairs(game.Players:GetPlayers()) do
-                if v.Character then
-                    for _, limb in pairs(targetLimbs) do
-                        local part = v.Character:FindFirstChild(limb)
-                        if part then
+                -- Only modify OTHER players to avoid falling through floors / environment
+                if v ~= localPlayer and v.Character then
+                    -- Loop through EVERY part in the character
+                    for _, part in ipairs(v.Character:GetDescendants()) do
+                        if part:IsA("BasePart") then
                             -- Store original properties once
                             if not originalProperties[part] then
                                 originalProperties[part] = {
                                     Size = part.Size,
-                                    CanCollide = false,
+                                    CanCollide = part.CanCollide,
                                     Transparency = part.Transparency
                                 }
                             end
+                            -- Disable collision on ALL parts
                             part.CanCollide = false
-                            part.Transparency = HitboxTransparency
-                            part.Size = HitboxSize
+                            
+                            -- Apply hitbox expansion only to specific limbs
+                            if table.find(targetLimbs, part.Name) then
+                                part.Transparency = HitboxTransparency
+                                part.Size = HitboxSize
+                            end
                         end
                     end
                 end
@@ -280,10 +282,16 @@ game.Players.PlayerRemoving:Connect(function(player)
             player.Character:FindFirstChild("ESP_Tracer"):Destroy()
         end
     end
+    -- Clean up stored properties for this player's parts
+    for part, _ in pairs(originalProperties) do
+        if part and part.Parent == player.Character then
+            originalProperties[part] = nil
+        end
+    end
 end)
 
 Rayfield:Notify({
     Title = "Debug Suite Loaded",
-    Content = "Anti-cheat analysis tools ready.",
+    Content = "Anti-cheat analysis tools ready. All other players' parts are now non-collidable.",
     Duration = 5
 })
